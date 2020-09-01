@@ -9,9 +9,7 @@ from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
-import dgl
-
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307, ), (0.3081, ))])
+from pytorch_lightning import Trainer
 
 class MNISTNet(LightningModule):
     def __init__(self):
@@ -37,16 +35,21 @@ class MNISTNet(LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = F.nll_loss(logits, y)
+        loss = F.F.cross_entropy(logits, y)
         
         return loss
+        
+    def train_dataloader(self):
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307, ), (0.3081, ))])
+        
+        mnist_train = MNIST(os.getcwd(), train=True, download=True)
+        mnist_train = DataLoader(mnist_train, batch_size=64, num_workers=4)
+        
+        return mnist_train
         
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
         
-mnist_train = MNIST(os.getcwd(), train=True, download=True)
-mnist_train = DataLoader(mnist_train, batch_size=64)
-        
 net = MNISTNet()
-trainer = pl.Trainer()
-trainer.fit(net, mnist_train)
+trainer = Trainer()
+trainer.fit(net)
